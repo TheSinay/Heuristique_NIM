@@ -1,5 +1,8 @@
 # fichier: jeu.py
 import heapq
+import csv
+import random
+from datetime import datetime
 
 def afficher_etat(etat_jeu):
     """
@@ -139,12 +142,61 @@ def algorithme_a_star(etat_initial):
     return None
 
 
+def sauvegarder_historique(id_partie, historique, gagnant):
+    """
+    Sauvegarde l'historique d'une partie dans un fichier CSV.
+    """
+    nom_fichier = f"historique_partie.csv"
+    with open(nom_fichier, mode='w', newline='') as fichier_csv:
+        writer = csv.writer(fichier_csv)
+        
+        # Écrire les en-têtes
+        writer.writerow(["ID Partie", "Tour", "État Avant Coup", "Action", "Joueur", "État Après Coup"])
+        
+        # Écrire l'historique
+        for ligne in historique:
+            writer.writerow([id_partie] + ligne)
+        
+        # Ajouter le gagnant à la fin
+        writer.writerow([id_partie, "Fin", "", "", "", f"Gagnant : {gagnant}"])
+    
+    print(f"Historique sauvegardé dans {nom_fichier}")
+    
+def mouvement_aleatoire(etat_jeu):
+    """
+    Génère un mouvement aléatoire pour l'IA aléatoire.
+    
+    Paramètres :
+    etat_jeu : Liste représentant les tas du jeu de Nim.
+    
+    Retourne :
+    Le nouvel état après un mouvement aléatoire.
+    """
+    tas_non_vides = [i for i, tas in enumerate(etat_jeu) if tas > 0]  # Trouver les tas non vides
+    if not tas_non_vides:
+        return None  # Aucun mouvement possible (le jeu est terminé)
+    
+    # Choisir un tas au hasard parmi les tas non vides
+    tas_index = random.choice(tas_non_vides)
+    
+    # Choisir un nombre d'objets aléatoire à retirer (entre 1 et le nombre d'objets dans ce tas)
+    nb_objets_a_retirer = random.randint(1, etat_jeu[tas_index])
+    
+    # Appliquer le mouvement
+    nouvel_etat = appliquer_mouvement(etat_jeu, tas_index, nb_objets_a_retirer)
+    return nouvel_etat
+
 def boucle_de_jeu_contre_ia(etat_initial):
     etat_jeu = etat_initial
     tour = 1  # 1 = joueur humain, 2 = IA
+    num_tour = 0  # Compteur de tours
+    historique = []  # Liste pour stocker l'historique des coups
+    id_partie = datetime.now().strftime("%Y%m%d%H%M%S")  # Utilisation de la date/heure comme identifiant unique
 
     while not etat_final(etat_jeu):
         print("\nÉtat actuel du jeu :", etat_jeu)
+        etat_avant = etat_jeu.copy()
+        num_tour += 1
         if tour == 1:
             print("\nC'est votre tour.")
             # Demander à l'utilisateur de choisir un tas et combien d'objets retirer
@@ -158,28 +210,167 @@ def boucle_de_jeu_contre_ia(etat_initial):
                     continue
                 else:
                     etat_jeu = nouvel_etat
+                    historique.append([num_tour, etat_avant, f"tas {tas_index + 1}, {nb_objets} objets retirés", "Joueur", etat_jeu])
                     tour = 2  # Passer le tour à l'IA
             except ValueError:
                 print("Entrée non valide. Veuillez entrer un nombre entier.")
                 continue
         else:
             print("\nTour de l'IA...")
-            etat_jeu = algorithme_a_star(etat_jeu)
+            etat_jeu_suivant = algorithme_a_star(etat_jeu)
+            historique.append([num_tour, etat_avant, f"IA joue", "IA", etat_jeu_suivant])
+            etat_jeu = etat_jeu_suivant
             print(f"L'IA a joué : {etat_jeu}")
             tour = 1  # Repasser le tour au joueur humain
 
-    # Une fois que l'état final est atteint, déterminer le gagnant
+    # Déterminer le gagnant
     if tour == 1:
+        gagnant = "IA"
         print("L'IA a gagné !")
     else:
+        gagnant = "Joueur"
         print("Vous avez gagné !")
+    
+    # Sauvegarder l'historique à la fin de la partie
+    sauvegarder_historique(id_partie, historique, gagnant)
+    
+def boucle_de_jeu_contre_joueur_aleatoire(etat_initial):
+    etat_jeu = etat_initial
+    tour = 1  # 1 = joueur humain, 2 = IA aléatoire
+    num_tour = 0  # Compteur de tours
+    historique = []  # Liste pour stocker l'historique des coups
+    id_partie = datetime.now().strftime("%Y%m%d%H%M%S")  # Utilisation de la date/heure comme identifiant unique
+
+    while not etat_final(etat_jeu):
+        print("\nÉtat actuel du jeu :", etat_jeu)
+        etat_avant = etat_jeu.copy()
+        num_tour += 1
+        if tour == 1:
+            print("\nC'est votre tour.")
+            # Demander à l'utilisateur de choisir un tas et combien d'objets retirer
+            try:
+                tas_index = int(input("Choisissez un tas (1, 2 ou 3) : ")) - 1
+                nb_objets = int(input("Combien d'objets voulez-vous retirer ? "))
+                nouvel_etat = appliquer_mouvement(etat_jeu, tas_index, nb_objets)
+
+                if nouvel_etat is None:
+                    print("Mouvement invalide, veuillez réessayer.")
+                    continue
+                else:
+                    etat_jeu = nouvel_etat
+                    historique.append([num_tour, etat_avant, f"tas {tas_index + 1}, {nb_objets} objets retirés", "Joueur", etat_jeu])
+                    tour = 2  # Passer le tour au joueur aléatoire
+            except ValueError:
+                print("Entrée non valide. Veuillez entrer un nombre entier.")
+                continue
+        else:
+            print("\nTour du joueur aléatoire...")
+            etat_jeu_suivant = mouvement_aleatoire(etat_jeu)
+            historique.append([num_tour, etat_avant, f"IA aléatoire joue", "IA Aléatoire", etat_jeu_suivant])
+            etat_jeu = etat_jeu_suivant
+            print(f"L'IA aléatoire a joué : {etat_jeu}")
+            tour = 1  # Repasser le tour au joueur humain
+
+    # Déterminer le gagnant
+    if tour == 1:
+        gagnant = "IA Aléatoire"
+        print("Le joueur aléatoire a gagné !")
+    else:
+        gagnant = "Joueur"
+        print("Vous avez gagné !")
+    
+    # Sauvegarder l'historique à la fin de la partie
+    sauvegarder_historique(id_partie, historique, gagnant)
+    
+def choix_mode_de_jeu():
+    print("Choisissez le mode de jeu :")
+    print("1. Jouer contre l'IA (algorithme A*)")
+    print("2. Jouer contre un joueur aléatoire")
+    print("3. IA (algorithme A*) contre IA aléatoire")
+    choix = input("Entrez 1, 2 ou 3 : ")
+    return choix
+
+
+
+def generer_etat_initial_aleatoire(min_tas=2, max_tas=3, min_objets=1, max_objets=10):
+    """
+    Génère un état initial aléatoire pour le jeu de Nim.
+    
+    Paramètres :
+    min_tas : Le nombre minimum de tas.
+    max_tas : Le nombre maximum de tas.
+    min_objets : Le nombre minimum d'objets dans un tas.
+    max_objets : Le nombre maximum d'objets dans un tas.
+    
+    Retourne :
+    Une liste représentant les tas avec un nombre d'objets aléatoire.
+    """
+    # Générer un nombre aléatoire de tas
+    nombre_de_tas = random.randint(min_tas, max_tas)
+    
+    # Générer un nombre d'objets aléatoire pour chaque tas
+    etat_initial = [random.randint(min_objets, max_objets) for _ in range(nombre_de_tas)]
+    
+    return etat_initial
+
+
+def boucle_ia_vs_ia(etat_initial):
+    etat_jeu = etat_initial
+    tour = 1  # 1 = IA avec A*, 2 = IA aléatoire
+    num_tour = 0  # Compteur de tours
+    historique = []  # Liste pour stocker l'historique des coups
+    id_partie = datetime.now().strftime("%Y%m%d%H%M%S")  # Utilisation de la date/heure comme identifiant unique
+
+    while not etat_final(etat_jeu):
+        print("\nÉtat actuel du jeu :", etat_jeu)
+        etat_avant = etat_jeu.copy()
+        num_tour += 1
+
+        if tour == 1:
+            print("\nTour de l'IA avec A*...")
+            etat_jeu_suivant = algorithme_a_star(etat_jeu)
+            historique.append([num_tour, etat_avant, f"IA A* joue", "IA A*", etat_jeu_suivant])
+            etat_jeu = etat_jeu_suivant
+            print(f"L'IA avec A* a joué : {etat_jeu}")
+            tour = 2  # Passer le tour à l'IA aléatoire
+        else:
+            print("\nTour de l'IA aléatoire...")
+            etat_jeu_suivant = mouvement_aleatoire(etat_jeu)
+            historique.append([num_tour, etat_avant, f"IA aléatoire joue", "IA Aléatoire", etat_jeu_suivant])
+            etat_jeu = etat_jeu_suivant
+            print(f"L'IA aléatoire a joué : {etat_jeu}")
+            tour = 1  # Repasser le tour à l'IA avec A*
+
+    # Déterminer le gagnant
+    if tour == 1:
+        gagnant = "IA Aléatoire"
+        print("L'IA aléatoire a gagné !")
+    else:
+        gagnant = "IA A*"
+        print("L'IA avec A* a gagné !")
+    
+    # Sauvegarder l'historique à la fin de la partie
+    sauvegarder_historique(id_partie, historique, gagnant)
+
 
 if __name__ == "__main__":
-    # Définir l'état initial du jeu
-    etat_initial = [3, 4, 5]  # Par exemple, on commence avec 3 tas contenant respectivement 3, 4 et 5 objets.
+    # Demander à l'utilisateur de choisir l'état initial
+    etat_initial = generer_etat_initial_aleatoire()
     
     print("Bienvenue dans le jeu de Nim contre l'IA !")
     print("L'état initial du jeu est :", etat_initial)
     
-    # Lancer la boucle de jeu
-    boucle_de_jeu_contre_ia(etat_initial)
+    # Demander à l'utilisateur de choisir un mode de jeu
+    choix = choix_mode_de_jeu()
+    
+    if choix == "1":
+        # Lancer la boucle de jeu contre l'IA stratégique
+        boucle_de_jeu_contre_ia(etat_initial)
+    elif choix == "2":
+        # Lancer la boucle de jeu contre l'IA aléatoire
+        boucle_de_jeu_contre_joueur_aleatoire(etat_initial)
+    elif choix == "3":
+        # Lancer la boucle IA contre IA aléatoire
+        boucle_ia_vs_ia(etat_initial)
+    else:
+        print("Choix invalide. Veuillez redémarrer et choisir 1, 2 ou 3.")

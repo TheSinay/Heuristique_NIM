@@ -1,0 +1,9 @@
+ID Partie,Tour,État Avant Coup,Action,Joueur,État Après Coup
+20241023120134,1,"[5, 3, 6]",IA A* joue,IA A*,"[2, 3, 6]"
+20241023120134,2,"[2, 3, 6]",IA aléatoire joue,IA Aléatoire,"[0, 3, 6]"
+20241023120134,3,"[0, 3, 6]",IA A* joue,IA A*,"[0, 0, 6]"
+20241023120134,4,"[0, 0, 6]",IA aléatoire joue,IA Aléatoire,"[0, 0, 5]"
+20241023120134,5,"[0, 0, 5]",IA A* joue,IA A*,"[0, 0, 2]"
+20241023120134,6,"[0, 0, 2]",IA aléatoire joue,IA Aléatoire,"[0, 0, 1]"
+20241023120134,7,"[0, 0, 1]",IA A* joue,IA A*,"[0, 0, 0]"
+20241023120134,Fin,,,,Gagnant : IA A*

@@ -144,10 +144,10 @@ def algorithme_a_star(etat_initial):
 
 def sauvegarder_historique(id_partie, historique, gagnant):
     """
-    Sauvegarde l'historique d'une partie dans un fichier CSV.
+    Sauvegarde l'historique d'une partie dans un fichier CSV avec encodage UTF-8.
     """
     nom_fichier = f"historique_partie.csv"
-    with open(nom_fichier, mode='w', newline='') as fichier_csv:
+    with open(nom_fichier, mode='w', newline='', encoding='utf-8') as fichier_csv:
         writer = csv.writer(fichier_csv)
         
         # Écrire les en-têtes
@@ -161,6 +161,7 @@ def sauvegarder_historique(id_partie, historique, gagnant):
         writer.writerow([id_partie, "Fin", "", "", "", f"Gagnant : {gagnant}"])
     
     print(f"Historique sauvegardé dans {nom_fichier}")
+
     
 def mouvement_aleatoire(etat_jeu):
     """
@@ -180,7 +181,8 @@ def mouvement_aleatoire(etat_jeu):
     tas_index = random.choice(tas_non_vides)
     
     # Choisir un nombre d'objets aléatoire à retirer (entre 1 et le nombre d'objets dans ce tas)
-    nb_objets_a_retirer = random.randint(1, etat_jeu[tas_index])
+    nb_objets_a_retirer = random.randint(1, min(3, etat_jeu[tas_index]))
+
     
     # Appliquer le mouvement
     nouvel_etat = appliquer_mouvement(etat_jeu, tas_index, nb_objets_a_retirer)
